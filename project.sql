@@ -234,3 +234,4 @@ WHERE a.appointment_date = (
     FROM Appointments
     WHERE patient_id = p.patient_id
 );
+
