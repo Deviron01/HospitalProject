@@ -136,4 +136,101 @@ VALUES (1, 2, '2025-07-12', NULL, 'Admitted'),
 		(1, 2, '2025-07-12', NULL, 'Admitted'),
 		(1, 2, '2025-07-12', NULL, 'Admitted');
         
-     
+
+-- Find all appointments for a specific doctor
+
+SELECT 
+		a.appointment_id,
+        p.first_name AS patient_first,
+        p.last_name AS patient_last,
+        a.appointment_date,
+        a.appointment_time,
+        a.reason
+FROM Appointments a
+JOIN Patients p ON a.patient_id = p.patient_id
+WHERE a.doctor_id = 1
+ORDER BY a.appointment_date, a.appointment_time;
+
+-- List all patients currently admitted in the hospital
+SELECT 
+        p.patient_id,
+        p.first_name,
+        p.last_name,
+        r.room_number,
+        a.admission_date
+FROM Admissions a
+JOIN Patients p ON a.patient_id = p.patient_id
+JOIN Rooms r ON a.room_id = r.room_id
+WHERE a.status = 'Admitted'
+ORDER BY a.admission_date;
+
+-- Get the number of doctors in each department
+SELECT 
+        d.department_name,
+        COUNT(doc.doctor_id) AS num_doctors
+FROM Departments d
+LEFT JOIN Doctors doc ON d.department_id = doc.department_id
+GROUP BY d.department_id, d.department_name;
+-- Find all available rooms of a specific type
+SELECT 
+        room_id,
+        room_number,
+        room_type
+FROM Rooms
+WHERE status = 'Available' AND room_type = 'General';
+-- Get the medical history of a specific patient
+SELECT
+        mr.record_id,
+        d.first_name AS doctor_first,
+        d.last_name AS doctor_last,
+        mr.visit_date,
+        mr.diagnosis
+FROM MedicalReports mr
+JOIN Doctors d ON mr.doctor_id = d.doctor_id
+WHERE mr.patient_id = 1
+ORDER BY mr.visit_date DESC;
+
+
+-- List all patients along with their assigned doctors
+SELECT
+        p.patient_id,
+        p.first_name AS patient_first,
+        p.last_name AS patient_last,
+        d.first_name AS doctor_first,
+        d.last_name AS doctor_last,
+        dep.department_name
+FROM Patients p
+JOIN Appointments a ON p.patient_id = a.patient_id
+JOIN Doctors d ON a.doctor_id = d.doctor_id
+JOIN Departments dep ON d.department_id = dep.department_id
+ORDER BY p.patient_id;
+
+-- Trigger to update rooms on admission and discharge
+DELIMITER //
+CREATE TRIGGER after_admission_insert
+AFTER INSERT ON Admissions
+FOR EACH ROW
+BEGIN
+    UPDATE Rooms
+    SET status = 'Occupied'
+    WHERE room_id = NEW.room_id;
+END;
+
+-- Create a view for patient details with their latest appointment
+CREATE OR REPLACE VIEW PatientLatestAppointments AS
+SELECT 
+        p.patient_id,
+        p.first_name AS patient_first,
+        p.last_name AS patient_last,
+        a.appointment_date,
+        a.appointment_time,
+        d.first_name AS doctor_first,
+        d.last_name AS doctor_last
+FROM Patients p
+LEFT JOIN Appointments a ON p.patient_id = a.patient_id
+LEFT JOIN Doctors d ON a.doctor_id = d.doctor_id
+WHERE a.appointment_date = (
+    SELECT MAX(appointment_date)
+    FROM Appointments
+    WHERE patient_id = p.patient_id
+);
