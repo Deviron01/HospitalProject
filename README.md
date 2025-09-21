@@ -1,4 +1,4 @@
--- Readme file
+
 
 Hospital Management System Database
 This SQL script sets up a database schema for a Hospital Management System. 
